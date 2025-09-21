@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Single Bus Organization Simulator</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 25%, #2d2d5f 50%, #1a1a3a 75%, #0f0f23 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            min-height: 100vh;
+            color: #e0e6ed;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 25% 25%, #00ffff22 2px, transparent 2px),
+                radial-gradient(circle at 75% 75%, #ff006622 2px, transparent 2px);
+            background-size: 100px 100px;
+            opacity: 0.1;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .header h1 {
+            font-family: 'Orbitron', monospace;
+            font-size: 3.5rem;
+            font-weight: 900;
+            background: linear-gradient(45deg, #00ffff, #ff0066, #ffff00, #00ffff);
+            background-size: 300% 300%;
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: textGlow 4s ease-in-out infinite;
+            text-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+            margin-bottom: 15px;
+        }
+
+        @keyframes textGlow {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .header p {
+            font-size: 1.4rem;
+            color: #8892b0;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+
+        .control-panel {
+            background: rgba(17, 34, 64, 0.8);
+            border: 1px solid rgba(100, 255, 218, 0.3);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 40px;
+            backdrop-filter: blur(20px);
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(100, 255, 218, 0.1), transparent);
+            animation: scanline 3s linear infinite;
+        }
+
+        @keyframes scanline {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 2;
+        }
+
+        button {
+            padding: 15px 30px;
+            border: 2px solid;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-family: 'Orbitron', monospace;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+            background: transparent;
+        }
+
+        .btn-primary {
+            color: #00ffff;
+            border-color: #00ffff;
+            box-shadow: 
+                0 0 20px rgba(0, 255, 255, 0.3),
+                inset 0 0 20px rgba(0, 255, 255, 0.1);
+        }
+
+        .btn-secondary {
+            color: #ff0066;
+            border-color: #ff0066;
+            box-shadow: 
+                0 0 20px rgba(255, 0, 102, 0.3),
+                inset 0 0 20px rgba(255, 0, 102, 0.1);
+        }
+
+        .btn-success {
+            color: #00ff88;
+            border-color: #00ff88;
+            box-shadow: 
+                0 0 20px rgba(0, 255, 136, 0.3),
+                inset 0 0 20px rgba(0, 255, 136, 0.1);
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        button:hover::before {
+            left: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 
+                0 10px 30px rgba(0, 0, 0, 0.3),
+                0 0 40px currentColor;
+        }
+
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 2.2fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .processor-section {
+            background: rgba(17, 34, 64, 0.9);
+            border: 1px solid rgba(100, 255, 218, 0.3);
+            border-radius: 25px;
+            padding: 30px;
+            backdrop-filter: blur(20px);
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .status-section {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .status-panel {
+            background: rgba(17, 34, 64, 0.9);
+            border: 1px solid rgba(100, 255, 218, 0.3);
+            border-radius: 20px;
+            padding: 25px;
+            backdrop-filter: blur(20px);
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .bus-diagram {
+            position: relative;
+            height: 700px;
+            margin: 25px 0;
+            background: radial-gradient(ellipse at center, rgba(0, 255, 255, 0.05) 0%, transparent 70%);
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .component {
+            position: absolute;
+            border: 2px solid #4a5568;
+            border-radius: 12px;
+            background: linear-gradient(145deg, #2d3748 0%, #1a202c 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-family: 'Orbitron', monospace;
+            text-align: center;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 
+                0 8px 16px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .component:hover {
+            transform: scale(1.05);
+            box-shadow: 
+                0 15px 30px rgba(0, 0, 0, 0.4),
+                0 0 30px rgba(100, 255, 218, 0.3);
+        }
+
+        .component.active {
+            background: linear-gradient(145deg, #00ffff 0%, #0080ff 100%);
+            color: #000;
+            border-color: #00ffff;
+            box-shadow: 
+                0 0 40px rgba(0, 255, 255, 0.8),
+                inset 0 0 20px rgba(255, 255, 255, 0.3);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1.05); }
+            50% { transform: scale(1.15); }
+        }
+
+        .memory { 
+            top: 60px; left: 60px; width: 140px; height: 120px; 
+            background: linear-gradient(145deg, #4a5568 0%, #2d3748 100%);
+        }
+        .pc { 
+            top: 60px; right: 60px; width: 100px; height: 80px;
+            background: linear-gradient(145deg, #805ad5 0%, #553c9a 100%);
+        }
+        .mar { 
+            top: 160px; left: 60px; width: 100px; height: 80px;
+            background: linear-gradient(145deg, #38b2ac 0%, #2c7a7b 100%);
+        }
+        .mdr { 
+            top: 260px; left: 60px; width: 100px; height: 80px;
+            background: linear-gradient(145deg, #ed8936 0%, #c05621 100%);
+        }
+        .ir { 
+            top: 160px; right: 60px; width: 100px; height: 80px;
+            background: linear-gradient(145deg, #e53e3e 0%, #c53030 100%);
+        }
+        .control-unit { 
+            top: 260px; right: 60px; width: 140px; height: 100px;
+            background: linear-gradient(145deg, #d69e2e 0%, #b7791f 100%);
+        }
+        .alu { 
+            bottom: 120px; left: 240px; width: 120px; height: 100px;
+            background: linear-gradient(145deg, #48bb78 0%, #38a169 100%);
+        }
+        .registers { 
+            bottom: 60px; right: 60px; width: 180px; height: 140px;
+            background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .bus-line {
+            position: absolute;
+            background: linear-gradient(90deg, #4a5568, #718096, #4a5568);
+            transition: all 0.5s ease;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .bus-line.active {
+            background: linear-gradient(90deg, #00ffff, #ffff00, #00ffff);
+            box-shadow: 
+                0 0 20px rgba(0, 255, 255, 0.8),
+                0 0 40px rgba(255, 255, 0, 0.6);
+            animation: busFlow 2s linear infinite;
+        }
+
+        @keyframes busFlow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+
+        .horizontal-bus { 
+            height: 8px; 
+            top: 400px; 
+            left: 60px; 
+            right: 60px; 
+        }
+
+        .vertical-connectors { 
+            width: 8px; 
+            background: linear-gradient(180deg, #4a5568, #718096, #4a5568);
+        }
+
+        .step-display {
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.1) 0%, rgba(255, 0, 102, 0.1) 100%);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            color: #e0e6ed;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .step-display h3 {
+            margin-bottom: 15px;
+            font-family: 'Orbitron', monospace;
+            font-size: 1.3rem;
+            color: #00ffff;
+        }
+
+        .microops-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .microops-table th,
+        .microops-table td {
+            border: 1px solid rgba(100, 255, 218, 0.2);
+            padding: 15px 12px;
+            text-align: left;
+            transition: all 0.3s ease;
+        }
+
+        .microops-table th {
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(255, 0, 102, 0.2));
+            font-weight: bold;
+            font-family: 'Orbitron', monospace;
+            color: #00ffff;
+        }
+
+        .microops-table tr.active {
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(255, 255, 0, 0.3));
+            animation: rowHighlight 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes rowHighlight {
+            from { box-shadow: inset 0 0 20px rgba(0, 255, 255, 0.3); }
+            to { box-shadow: inset 0 0 20px rgba(255, 255, 0, 0.3); }
+        }
+
+        .register-display {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .register-item {
+            background: linear-gradient(145deg, rgba(0, 0, 0, 0.3), rgba(255, 255, 255, 0.1));
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(100, 255, 218, 0.3);
+            text-align: center;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .register-item:hover {
+            transform: translateY(-3px);
+            border-color: #00ffff;
+            box-shadow: 0 10px 30px rgba(0, 255, 255, 0.3);
+        }
+
+        .register-item strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #00ffff;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.9rem;
+        }
+
+        .register-item div {
+            font-size: 1.1rem;
+            font-family: 'Orbitron', monospace;
+            font-weight: bold;
+        }
+
+        .register-item.changed {
+            background: linear-gradient(145deg, rgba(0, 255, 136, 0.3), rgba(0, 255, 255, 0.3));
+            border-color: #00ff88;
+            animation: registerChange 2s ease-in-out;
+            transform: scale(1.05);
+        }
+
+        @keyframes registerChange {
+            0% { 
+                background: linear-gradient(145deg, #00ff88, #00ffff);
+                color: #000;
+                transform: scale(1.1);
+            }
+            100% { 
+                background: linear-gradient(145deg, rgba(0, 255, 136, 0.3), rgba(0, 255, 255, 0.3));
+                color: #e0e6ed;
+                transform: scale(1.05);
+            }
+        }
+
+        .flags-display {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .flag {
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: linear-gradient(145deg, #4a5568, #2d3748);
+            color: #a0aec0;
+            font-size: 0.95rem;
+            font-family: 'Orbitron', monospace;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .flag.set {
+            background: linear-gradient(145deg, #00ff88, #00cc6a);
+            color: #000;
+            border-color: #00ff88;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+        }
+
+        .cycle-progress {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .cycle-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #00ffff, #ffff00, #ff0066);
+            background-size: 200% 100%;
+            width: 0%;
+            transition: width 0.5s ease;
+            animation: progressGlow 2s linear infinite;
+        }
+
+        @keyframes progressGlow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+
+        .data-flow {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: radial-gradient(circle, #ffff00, #00ffff);
+            border-radius: 50%;
+            animation: dataFlow 3s ease infinite;
+            z-index: 100;
+            box-shadow: 
+                0 0 20px rgba(255, 255, 0, 0.8),
+                0 0 40px rgba(0, 255, 255, 0.6);
+        }
+
+        @keyframes dataFlow {
+            0% { 
+                transform: scale(0); 
+                opacity: 0; 
+            }
+            10% { 
+                transform: scale(1); 
+                opacity: 1; 
+            }
+            90% { 
+                transform: scale(1.2); 
+                opacity: 1; 
+            }
+            100% { 
+                transform: scale(0); 
+                opacity: 0; 
+            }
+        }
+
+        .instruction-info {
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(255, 0, 102, 0.1));
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+        }
+
+        .instruction-info h3 {
+            color: #00ffff;
+            font-family: 'Orbitron', monospace;
+            margin-bottom: 10px;
+        }
+
+        .instruction-info strong {
+            color: #ffff00;
+            font-family: 'Orbitron', monospace;
+            font-size: 1.2rem;
+        }
+
+        @media (max-width: 1400px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0f0f23;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(0, 255, 255, 0.3);
+            border-top: 4px solid #00ffff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading" id="loading">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>QUANTUM BUS SIMULATOR</h1>
+            <p>Advanced Single Bus Organization | MOV R1, #10H</p>
+        </div>
+
+        <div class="control-panel">
+            <div class="buttons">
+                <button id="startBtn" class="btn-primary">🚀 INITIALIZE</button>
+                <button id="stepBtn" class="btn-secondary" disabled>⚡ NEXT CYCLE</button>
+                <button id="resetBtn" class="btn-success">🔄 RESET CORE</button>
+                <button id="autoBtn" class="btn-primary">🤖 AUTO EXECUTE</button>
+                <button id="soundBtn" class="btn-secondary">🔊 SOUND FX</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="processor-section">
+                <h2 style="font-family: 'Orbitron', monospace; color: #00ffff; text-align: center; margin-bottom: 20px;">
+                    QUANTUM PROCESSOR CORE
+                </h2>
+                <div class="bus-diagram">
+                    <div class="component memory" id="memory">
+                        <div>
+                            <div style="color: #00ffff; font-weight: bold; margin-bottom: 5px;">MEMORY</div>
+                            <div style="font-size: 0.7rem;">1000H: 3110H</div>
+                        </div>
+                    </div>
+                    <div class="component pc" id="pc">
+                        <div>PC<br><span style="font-size: 0.7rem; color: #ccc;">Program<br>Counter</span></div>
+                    </div>
+                    <div class="component mar" id="mar">
+                        <div>MAR<br><span style="font-size: 0.7rem; color: #ccc;">Memory<br>Address</span></div>
+                    </div>
+                    <div class="component mdr" id="mdr">
+                        <div>MDR<br><span style="font-size: 0.7rem; color: #ccc;">Memory<br>Data</span></div>
+                    </div>
+                    <div class="component ir" id="ir">
+                        <div>IR<br><span style="font-size: 0.7rem; color: #ccc;">Instruction<br>Register</span></div>
+                    </div>
+                    <div class="component control-unit" id="controlUnit">
+                        <div>CONTROL<br>UNIT<br><span style="font-size: 0.6rem; color: #ccc;">Decode & Control</span></div>
+                    </div>
+                    <div class="component alu" id="alu">
+                        <div>ALU<br><span style="font-size: 0.7rem; color: #ccc;">Arithmetic<br>Logic Unit</span></div>
+                    </div>
+                    <div class="component registers" id="registers">
+                        <div>REGISTERS<br><span style="font-size: 0.7rem; color: #ccc;">R0-R15<br>General Purpose</span></div>
+                    </div>
+
+                    <div class="bus-line horizontal-bus" id="mainBus"></div>
+                    
+                    <div class="bus-line vertical-connectors" id="memoryBus" style="top: 180px; left: 128px; height: 220px;"></div>
+                    <div class="bus-line vertical-connectors" id="pcBus" style="top: 140px; right: 108px; height: 260px;"></div>
+                    <div class="bus-line vertical-connectors" id="aluBus" style="bottom: 120px; left: 298px; height: 180px;"></div>
+                    <div class="bus-line vertical-connectors" id="regBus" style="bottom: 60px; right: 148px; height: 200px;"></div>
+                    
+                    <div style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); color: #00ffff; font-family: 'Orbitron', monospace; font-size: 0.9rem;">
+                        <div>🕐 SYSTEM CLOCK: <span id="clockValue">2400.0 MHz</span></div>
+                    </div>
+                    
+                    <div style="position: absolute; bottom: 20px; left: 20px; right: 20px; display: flex; justify-content: space-between; font-family: 'Orbitron', monospace; font-size: 0.8rem;">
+                        <div id="busStatus" style="color: #666;">BUS: IDLE</div>
+                        <div id="cycleCounter" style="color: #666;">CYCLES: 0</div>
+                        <div style="color: #00ff88;">⚡ POWER: ON</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-section">
+                <div class="status-panel">
+                    <div class="instruction-info">
+                        <h3>QUANTUM INSTRUCTION</h3>
+                        <strong>MOV R1, #10H</strong>
+                        <p style="margin-top: 8px; color: #8892b0;">Transfer immediate hexadecimal value 10H to register R1</p>
+                        <div style="margin-top: 10px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 5px; font-family: 'Orbitron', monospace; font-size: 0.85rem;">
+                            <div>OPCODE: 31 | DEST: R1 | IMM: 10H</div>
+                            <div style="color: #00ffff;">BINARY: 0011 0001 0001 0000</div>
+                        </div>
+                    </div>
+
+                    <div class="step-display">
+                        <h3 id="stepTitle">🔋 SYSTEM STANDBY</h3>
+                        <p id="stepDescription">Initialize quantum processor core to begin execution</p>
+                        <div class="cycle-progress">
+                            <div class="cycle-progress-bar" id="progressBar"></div>
+                        </div>
+                        <div style="margin-top: 10px; font-family: 'Orbitron', monospace; font-size: 0.9rem;">
+                            <span id="executionTime">Execution Time: 0.000μs</span>
+                        </div>
+                    </div>
+
+                    <div class="register-display">
+                        <div class="register-item">
+                            <strong>PC</strong>
+                            <div id="pcValue">1000H</div>
+                        </div>
+                        <div class="register-item">
+                            <strong>MAR</strong>
+                            <div id="marValue">----</div>
+                        </div>
+                        <div class="register-item">
+                            <strong>MDR</strong>
+                            <div id="mdrValue">----</div>
+                        </div>
+                        <div class="register-item">
+                            <strong>IR</strong>
+                            <div id="irValue">----</div>
+                        </div>
+                        <div class="register-item">
+                            <strong>R1</strong>
+                            <div id="r1Value">0000H</div>
+                        </div>
+                        <div class="register-item">
+                            <strong>Z-REG</strong>
+                            <div id="zValue">----</div>
+                        </div>
+                    </div>
+
+                    <div class="flags-display">
+                        <div class="flag" id="flagZ">Z: 0</div>
+                        <div class="flag" id="flagN">N: 0</div>
+                        <div class="flag" id="flagC">C: 0</div>
+                        <div class="flag" id="flagV">V: 0</div>
+                    </div>
+                </div>
+
+                <div class="status-panel">
+                    <h3 style="color: #00ffff; font-family: 'Orbitron', monospace; margin-bottom: 15px;">⚙️ MICROOPERATIONS MATRIX</h3>
+                    <table class="microops-table">
+                        <thead>
+                            <tr>
+                                <th>CYCLE</th>
+                                <th>MICROOPERATIONS</th>
+                                <th>STATUS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr id="step1">
+                                <td style="font-family: 'Orbitron', monospace;">T1</td>
+                                <td>PC<sub>out</sub>, MAR<sub>in</sub>, Read, Select4, Add, Z<sub>in</sub></td>
+                                <td><span class="status-indicator" id="status1">⏸️ PENDING</span></td>
+                            </tr>
+                            <tr id="step2">
+                                <td style="font-family: 'Orbitron', monospace;">T2</td>
+                                <td>Z<sub>out</sub>, PC<sub>in</sub>, Y<sub>in</sub>, WMFC</td>
+                                <td><span class="status-indicator" id="status2">⏸️ PENDING</span></td>
+                            </tr>
+                            <tr id="step3">
+                                <td style="font-family: 'Orbitron', monospace;">T3</td>
+                                <td>MDR<sub>out</sub>, IR<sub>in</sub></td>
+                                <td><span class="status-indicator" id="status3">⏸️ PENDING</span></td>
+                            </tr>
+                            <tr id="step4">
+                                <td style="font-family: 'Orbitron', monospace;">T4</td>
+                                <td>Immediate field of IR<sub>out</sub>, R1<sub>in</sub>, END</td>
+                                <td><span class="status-indicator" id="status4">⏸️ PENDING</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <div style="margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px;">
+                        <h4 style="color: #ffff00; font-family: 'Orbitron', monospace; font-size: 0.9rem; margin-bottom: 8px;">📊 PERFORMANCE METRICS</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; font-family: 'Orbitron', monospace;">
+                            <div>CPI: <span id="cpiValue">4.0</span></div>
+                            <div>IPC: <span id="ipcValue">0.25</span></div>
+                            <div>Throughput: <span id="throughputValue">0 MIPS</span></div>
+                            <div>Pipeline: <span id="pipelineValue">SERIAL</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class QuantumBusSimulator {
+            constructor() {
+                this.currentStep = 0;
+                this.isRunning = false;
+                this.soundEnabled = true;
+                this.cycleCount = 0;
+                this.executionStartTime = 0;
+                this.clockSpeed = 2400;
+                
+                this.registers = {
+                    pc: 0x1000,
+                    mar: 0,
+                    mdr: 0,
+                    ir: 0,
+                    r1: 0,
+                    z: 0
+                };
+                
+                this.flags = { Z: 0, N: 0, C: 0, V: 0 };
+                this.memory = { 0x1000: 0x3110 };
+                
+                this.initializeEventListeners();
+                this.updateDisplay();
+                this.startSystemAnimations();
+                this.hideLoading();
+            }
+
+            hideLoading() {
+                setTimeout(() => {
+                    const loading = document.getElementById('loading');
+                    loading.style.opacity = '0';
+                    setTimeout(() => {
+                        loading.style.display = 'none';
+                    }, 500);
+                }, 1500);
+            }
+
+            initializeEventListeners() {
+                document.getElementById('startBtn').addEventListener('click', () => this.start());
+                document.getElementById('stepBtn').addEventListener('click', () => this.nextStep());
+                document.getElementById('resetBtn').addEventListener('click', () => this.reset());
+                document.getElementById('autoBtn').addEventListener('click', () => this.autoExecute());
+                document.getElementById('soundBtn').addEventListener('click', () => this.toggleSound());
+            }
+
+            startSystemAnimations() {
+                setInterval(() => {
+                    this.clockSpeed = Math.random() * 100 + 2400;
+                    document.getElementById('clockValue').textContent = this.clockSpeed.toFixed(1) + ' MHz';
+                }, 200);
+            }
+
+            toggleSound() {
+                this.soundEnabled = !this.soundEnabled;
+                const btn = document.getElementById('soundBtn');
+                btn.textContent = this.soundEnabled ? '🔊 SOUND FX' : '🔇 MUTED';
+                btn.style.opacity = this.soundEnabled ? '1' : '0.6';
+            }
+
+            playSound(frequency = 800, duration = 100) {
+                if (!this.soundEnabled) return;
+                
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.value = frequency;
+                    oscillator.type = 'sine';
+                    
+                    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + duration / 1000);
+                } catch (e) {
+                    // Audio not supported, continue silently
+                }
+            }
+
+            start() {
+                if (this.currentStep === 0) {
+                    document.getElementById('startBtn').disabled = true;
+                    document.getElementById('stepBtn').disabled = false;
+                    this.isRunning = true;
+                    this.executionStartTime = performance.now();
+                    this.updateStepDisplay();
+                    this.playSound(1000, 200);
+                    
+                    document.getElementById('busStatus').textContent = 'BUS: ACTIVE';
+                    document.getElementById('busStatus').style.color = '#00ffff';
+                }
+            }
+
+            async nextStep() {
+                if (this.currentStep < 4) {
+                    this.currentStep++;
+                    this.cycleCount++;
+                    await this.executeStep();
+                    this.updateDisplay();
+                    this.updateProgress();
+                    this.updateMetrics();
+                    
+                    if (this.currentStep >= 4) {
+                        document.getElementById('stepBtn').disabled = true;
+                        this.isRunning = false;
+                        document.getElementById('busStatus').textContent = 'BUS: IDLE';
+                        document.getElementById('busStatus').style.color = '#666';
+                        this.playSound(600, 300);
+                    } else {
+                        this.playSound(800, 150);
+                    }
+                }
+            }
+
+            async autoExecute() {
+                if (this.currentStep === 0) {
+                    this.start();
+                    document.getElementById('autoBtn').disabled = true;
+                    document.getElementById('stepBtn').disabled = true;
+                    
+                    for (let i = 0; i < 4; i++) {
+                        await this.delay(2500);
+                        await this.nextStep();
+                    }
+                    
+                    document.getElementById('autoBtn').disabled = false;
+                }
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            async executeStep() {
+                this.clearActiveComponents();
+                
+                document.getElementById(`status${this.currentStep}`).textContent = '⚡ EXECUTING';
+                document.getElementById(`status${this.currentStep}`).style.color = '#ffff00';
+                
+                switch(this.currentStep) {
+                    case 1:
+                        await this.step1();
+                        break;
+                    case 2:
+                        await this.step2();
+                        break;
+                    case 3:
+                        await this.step3();
+                        break;
+                    case 4:
+                        await this.step4();
+                        break;
+                }
+                
+                this.highlightCurrentStep();
+                this.animateDataFlow();
+                
+                setTimeout(() => {
+                    document.getElementById(`status${this.currentStep}`).textContent = '✅ COMPLETE';
+                    document.getElementById(`status${this.currentStep}`).style.color = '#00ff88';
+                }, 1000);
+            }
+
+            async step1() {
+                this.activateComponents(['pc', 'mar', 'alu']);
+                this.activateBus();
+                
+                this.registers.mar = this.registers.pc;
+                this.registers.z = this.registers.pc + 4;
+                
+                this.updateStepDisplay('⚡ CYCLE T1: ADDRESS CALCULATION', 
+                    'PC → MAR | PC + 4 → Z-Register | Memory read initiated');
+                
+                await this.delay(500);
+            }
+
+            async step2() {
+                this.activateComponents(['alu', 'pc']);
+                this.activateBus();
+                
+                this.registers.pc = this.registers.z;
+                
+                this.updateStepDisplay('⚡ CYCLE T2: PC UPDATE & MEMORY WAIT', 
+                    'Z-Register → PC | Wait for memory fetch completion | Bus arbitration');
+                
+                await this.delay(500);
+            }
+
+            async step3() {
+                this.activateComponents(['mdr', 'ir', 'memory']);
+                this.activateBus();
+                
+                this.registers.mdr = this.memory[this.registers.mar] || 0x3110;
+                this.registers.ir = this.registers.mdr;
+                
+                this.updateStepDisplay('⚡ CYCLE T3: INSTRUCTION FETCH', 
+                    'Memory → MDR → IR | Instruction decode initiated | Opcode analysis');
+                
+                await this.delay(500);
+            }
+
+            async step4() {
+                this.activateComponents(['ir', 'registers']);
+                this.activateBus();
+                
+                const immediateValue = 0x10;
+                this.registers.r1 = immediateValue;
+                
+                this.flags.Z = (immediateValue === 0) ? 1 : 0;
+                this.flags.N = 0;
+                
+                this.updateStepDisplay('⚡ CYCLE T4: OPERAND STORE & END', 
+                    'Immediate 10H → R1 | Flags updated | Instruction execution complete');
+                
+                document.getElementById('r1Value').parentElement.classList.add('changed');
+                
+                await this.delay(500);
+            }
+
+            clearActiveComponents() {
+                document.querySelectorAll('.component').forEach(comp => {
+                    comp.classList.remove('active', 'reading', 'writing');
+                });
+                document.querySelectorAll('.bus-line').forEach(bus => {
+                    bus.classList.remove('active');
+                });
+            }
+
+            activateComponents(components) {
+                components.forEach(comp => {
+                    const element = document.getElementById(comp);
+                    if (element) {
+                        element.classList.add('active');
+                    }
+                });
+            }
+
+            activateBus() {
+                document.getElementById('mainBus').classList.add('active');
+                
+                const activeComps = document.querySelectorAll('.component.active');
+                activeComps.forEach(comp => {
+                    const id = comp.id;
+                    const busId = id + 'Bus';
+                    const busElement = document.getElementById(busId);
+                    if (busElement) {
+                        busElement.classList.add('active');
+                    }
+                });
+            }
+
+            highlightCurrentStep() {
+                document.querySelectorAll('.microops-table tr').forEach(row => {
+                    row.classList.remove('active');
+                });
+                
+                const currentStepRow = document.getElementById(`step${this.currentStep}`);
+                if (currentStepRow) {
+                    currentStepRow.classList.add('active');
+                }
+            }
+
+            animateDataFlow() {
+                for (let i = 0; i < 3; i++) {
+                    setTimeout(() => {
+                        const dataFlow = document.createElement('div');
+                        dataFlow.className = 'data-flow';
+                        
+                        const startX = 100 + Math.random() * 200;
+                        
+                        dataFlow.style.left = startX + 'px';
+                        dataFlow.style.top = '396px';
+                        
+                        document.querySelector('.bus-diagram').appendChild(dataFlow);
+                        
+                        setTimeout(() => {
+                            if (dataFlow.parentNode) {
+                                dataFlow.parentNode.removeChild(dataFlow);
+                            }
+                        }, 3000);
+                    }, i * 200);
+                }
+            }
+
+            updateStepDisplay(title = '🔋 SYSTEM STANDBY', description = 'Initialize quantum processor core to begin execution') {
+                document.getElementById('stepTitle').textContent = title;
+                document.getElementById('stepDescription').textContent = description;
+                
+                if (this.executionStartTime > 0) {
+                    const elapsed = (performance.now() - this.executionStartTime) / 1000;
+                    document.getElementById('executionTime').textContent = `Execution Time: ${elapsed.toFixed(3)}μs`;
+                }
+            }
+
+            updateProgress() {
+                const progress = (this.currentStep / 4) * 100;
+                document.getElementById('progressBar').style.width = progress + '%';
+            }
+
+            updateMetrics() {
+                document.getElementById('cycleCounter').textContent = `CYCLES: ${this.cycleCount}`;
+                document.getElementById('cycleCounter').style.color = '#00ffff';
+                
+                const cpi = 4.0;
+                const ipc = 1 / cpi;
+                const throughput = this.cycleCount > 0 ? (1000 / (this.currentStep * 2.5)).toFixed(1) : '0';
+                
+                document.getElementById('cpiValue').textContent = cpi.toFixed(1);
+                document.getElementById('ipcValue').textContent = ipc.toFixed(2);
+                document.getElementById('throughputValue').textContent = throughput + ' MIPS';
+            }
+
+            updateDisplay() {
+                document.getElementById('pcValue').textContent = this.registers.pc.toString(16).toUpperCase().padStart(4, '0') + 'H';
+                document.getElementById('marValue').textContent = this.registers.mar ? this.registers.mar.toString(16).toUpperCase().padStart(4, '0') + 'H' : '----';
+                document.getElementById('mdrValue').textContent = this.registers.mdr ? this.registers.mdr.toString(16).toUpperCase().padStart(4, '0') + 'H' : '----';
+                document.getElementById('irValue').textContent = this.registers.ir ? this.registers.ir.toString(16).toUpperCase().padStart(4, '0') + 'H' : '----';
+                document.getElementById('r1Value').textContent = this.registers.r1.toString(16).toUpperCase().padStart(4, '0') + 'H';
+                document.getElementById('zValue').textContent = this.registers.z ? this.registers.z.toString(16).toUpperCase().padStart(4, '0') + 'H' : '----';
+                
+                Object.keys(this.flags).forEach(flag => {
+                    const flagElement = document.getElementById(`flag${flag}`);
+                    if (flagElement) {
+                        flagElement.textContent = `${flag}: ${this.flags[flag]}`;
+                        flagElement.classList.toggle('set', this.flags[flag] === 1);
+                    }
+                });
+            }
+
+            reset() {
+                this.currentStep = 0;
+                this.isRunning = false;
+                this.cycleCount = 0;
+                this.executionStartTime = 0;
+                this.registers = { pc: 0x1000, mar: 0, mdr: 0, ir: 0, r1: 0, z: 0 };
+                this.flags = { Z: 0, N: 0, C: 0, V: 0 };
+                
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('stepBtn').disabled = true;
+                document.getElementById('autoBtn').disabled = false;
+                
+                for (let i = 1; i <= 4; i++) {
+                    document.getElementById(`status${i}`).textContent = '⏸️ PENDING';
+                    document.getElementById(`status${i}`).style.color = '#666';
+                }
+                
+                document.querySelectorAll('.register-item').forEach(item => {
+                    item.classList.remove('changed');
+                });
+                
+                document.getElementById('busStatus').textContent = 'BUS: IDLE';
+                document.getElementById('busStatus').style.color = '#666';
+                document.getElementById('cycleCounter').textContent = 'CYCLES: 0';
+                document.getElementById('cycleCounter').style.color = '#666';
+                
+                document.getElementById('cpiValue').textContent = '4.0';
+                document.getElementById('ipcValue').textContent = '0.25';
+                document.getElementById('throughputValue').textContent = '0 MIPS';
+                document.getElementById('executionTime').textContent = 'Execution Time: 0.000μs';
+                
+                this.clearActiveComponents();
+                this.updateDisplay();
+                this.updateStepDisplay();
+                this.updateProgress();
+                
+                document.querySelectorAll('.microops-table tr').forEach(row => {
+                    row.classList.remove('active');
+                });
+                
+                this.playSound(400, 200);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new QuantumBusSimulator();
+        });
+
+        const style = document.createElement('style');
+        style.textContent = `
+            .status-indicator {
+                font-family: 'Orbitron', monospace;
+                font-weight: bold;
+                text-shadow: 0 0 5px currentColor;
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
